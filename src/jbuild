@@ -1,0 +1,8 @@
+(jbuild_version 1)
+
+(library
+ ((name        wifi)
+  (public_name wifi)
+  (c_names   (wifi_lib wifi_stubs))
+  (no_dynlink)
+  (libraries (cstruct result))))

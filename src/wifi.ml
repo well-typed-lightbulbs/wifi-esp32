@@ -11,6 +11,13 @@ type wifi_auth_mode =
     | AUTH_WPA_WPA2_PSK
     | AUTH_WPA2_ENTERPRISE
 
+type wifi_status = {
+    inited: bool;
+    ap_started: bool;
+    sta_started: bool;
+    sta_connected: bool;    
+}
+
 type wifi_configuration_ap = {
     ssid: Bytes.t;
     password: Bytes.t;
@@ -29,16 +36,16 @@ type wifi_configuration_sta = {
 type wifi_error = Out_of_memory
 
 type wifi_sta_description = {
-    mac: Macaddr.t;
+    mac: Bytes.t;
 }
 
 type wifi_ap_description = {
-    bssid: Macaddr.t;
+    bssid: Bytes.t;
     ssid: Bytes.t;
-    channel: int;
-    rssi: int;
     auth_mode: wifi_auth_mode;
 }
+
+external get_status : unit -> wifi_status = "ml_wifi_get_status"
 
 external initialize : unit -> (unit, wifi_error) result = "ml_wifi_initialize"
 external deinitialize : unit -> (unit, wifi_error) result = "ml_wifi_deinitialize"
@@ -69,13 +76,5 @@ external scan_get_list : int -> (wifi_ap_description list, wifi_error) result = 
 
 external read : wifi_interface -> Cstruct.buffer -> int -> (int, wifi_error) result = "ml_wifi_read"
 external write : wifi_interface -> Cstruct.buffer -> int -> (unit, wifi_error) result = "ml_wifi_write"
-external get_mac : wifi_interface -> Macaddr.t = "ml_wifi_get_mac"
+external get_mac : wifi_interface -> Bytes.t = "ml_wifi_get_mac"
 
-(* Station functions *)
-
-external sta_get_ap_info : unit -> (wifi_ap_description, wifi_error) result = "ml_wifi_sta_get_ap_info"
-
-(* AP functions *)
-
-external ap_deauth_sta : int -> (unit, wifi_error) result = "ml_wifi_ap_deauth_sta"
-external ap_get_sta_list : unit -> (wifi_sta_description list, wifi_error) result = "ml_wifi_ap_get_sta_list"
