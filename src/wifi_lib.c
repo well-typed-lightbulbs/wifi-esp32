@@ -128,6 +128,8 @@ esp_err_t wifi_event_handler(void *ctx, system_event_t *event)
 esp_err_t wifi_initialize() {
     esp_err_t res;
 
+    ESP_ERROR_CHECK(nvs_flash_init());
+
     /* Initialize event loop with wifi_event_handler */
     if (res = esp_event_loop_init(wifi_event_handler, NULL) != ESP_OK) {
         return res;
