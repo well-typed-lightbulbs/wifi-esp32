@@ -9,6 +9,7 @@
 #define WIFI_ERR_INVAL  2
 #define WIFI_ERR_UNSPEC 3
 
+
 #define ESP_STA_STARTED_BIT         BIT0
 #define ESP_AP_STARTED_BIT          BIT1
 #define ESP_STA_CONNECTED_BIT       BIT2

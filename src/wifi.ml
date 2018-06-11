@@ -33,7 +33,12 @@ type wifi_configuration_sta = {
     password: Bytes.t;
 }
 
-type wifi_error = Out_of_memory
+type wifi_error = 
+    | Unspecified
+    | Invalid_argument
+    | Out_of_memory
+    | Nothing_to_read
+    | Wifi_not_inited
 
 type wifi_sta_description = {
     mac: Bytes.t;
@@ -44,6 +49,7 @@ type wifi_ap_description = {
     ssid: Bytes.t;
     auth_mode: wifi_auth_mode;
 }
+
 
 external get_status : unit -> wifi_status = "ml_wifi_get_status"
 

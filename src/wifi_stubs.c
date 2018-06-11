@@ -34,8 +34,11 @@
 #define ML_WIFI_AUTH_WPA_WPA2_PSK      Val_int(3)
 #define ML_WIFI_AUTH_WPA2_ENTERPRISE   Val_int(4)
 
-#define ML_WIFI_ERROR_OUT_OF_MEMORY    Val_int(0)
-
+#define ML_WIFI_ERROR_UNSPECIFIED      Val_int(0)
+#define ML_WIFI_ERROR_INVALID_ARGUMENT Val_int(1)
+#define ML_WIFI_ERROR_OUT_OF_MEMORY    Val_int(2)
+#define ML_WIFI_ERROR_NOTHING_TO_READ  Val_int(3)
+#define ML_WIFI_ERROR_WIFI_NOT_INITED  Val_int(4)
 
 inline value result_ok (value val) {
     CAMLparam0 ();
@@ -450,8 +453,18 @@ value ml_wifi_read(value v_interface, value v_buffer, value v_buffer_size) {
 
     int error_code = wifi_read(interface, buf, &size);
 
-    if (error_code != ESP_OK) {
-        CAMLreturn (result_fail(0));
+    if (error_code != WIFI_ERR_OK) {
+        switch (error_code) {
+            case WIFI_ERR_AGAIN:
+                CAMLreturn (result_fail(ML_WIFI_ERROR_NOTHING_TO_READ));
+                break;
+            case WIFI_ERR_INVAL:
+                CAMLreturn (result_fail(ML_WIFI_ERROR_INVALID_ARGUMENT));
+                break;
+            default:
+                CAMLreturn (result_fail(ML_WIFI_ERROR_UNSPECIFIED));
+                break;
+        }
     }
 
     CAMLreturn (result_ok(Val_int(size)));
@@ -475,10 +488,17 @@ value ml_wifi_write(value v_interface, value v_buffer, value v_buffer_size) {
 
     int error_code = wifi_write(interface, buf, &size);
 
-    if (error_code != ESP_OK) {
-        CAMLreturn (result_fail(0));
-    }
     
+    if (error_code != WIFI_ERR_OK) {
+        switch (error_code) {
+            case WIFI_ERR_INVAL:
+                CAMLreturn (result_fail(ML_WIFI_ERROR_INVALID_ARGUMENT));
+                break;
+            default:
+                CAMLreturn (result_fail(ML_WIFI_ERROR_UNSPECIFIED));
+                break;
+        }
+    }
     CAMLreturn (result_ok(Val_unit));
 }
 
