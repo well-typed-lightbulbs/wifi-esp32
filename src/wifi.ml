@@ -95,5 +95,10 @@ external scan_get_list : int -> (wifi_ap_description list, wifi_error) result = 
 
 external read : wifi_interface -> Cstruct.buffer -> int -> (int, wifi_error) result = "ml_wifi_read"
 external write : wifi_interface -> Cstruct.buffer -> int -> (unit, wifi_error) result = "ml_wifi_write"
-external get_mac : wifi_interface -> Bytes.t = "ml_wifi_get_mac"
+external internal_get_mac : wifi_interface -> (string, wifi_error) result = "ml_wifi_get_mac"
+let get_mac intf = 
+    match internal_get_mac intf with 
+        | Ok res -> Bytes.of_string res 
+        | Error _ -> failwith "Wifi.internal_get_mac"
+    
 

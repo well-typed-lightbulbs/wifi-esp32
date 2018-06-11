@@ -40,22 +40,22 @@
 #define ML_WIFI_ERROR_NOTHING_TO_READ  Val_int(3)
 #define ML_WIFI_ERROR_WIFI_NOT_INITED  Val_int(4)
 
-inline value result_ok (value val) {
-    CAMLparam0 ();
+CAMLprim value 
+result_ok (value val) {
+    CAMLparam1 (val);
     CAMLlocal1(res);
-    res = caml_alloc_small(2, 0);
-    Field(res, 0) = Val_int(0);
-    Field(res, 1) = val;
-    return res;
+    res = caml_alloc(1, 0);
+    Store_field(res, 0, val);
+    CAMLreturn (res);
 }
 
-inline value result_fail (value error) {
-    CAMLparam0 ();
+CAMLprim value
+result_fail (value error) {
+    CAMLparam1 (error);
     CAMLlocal1(res);
-    res = caml_alloc_small(2, 0);
-    Field(res, 0) = Val_int(1);
-    Field(res, 1) = error;
-    return res;
+    res = caml_alloc(1, 1);
+    Store_field(res, 0, error);
+    CAMLreturn (res);
 }
 
 CAMLprim 
@@ -517,7 +517,6 @@ value ml_wifi_get_mac(value v_interface) {
             break;
     }
     v_result = caml_alloc_string(6);
-    
 
     if (esp_wifi_get_mac(interface, Bytes_val(v_result)) != ESP_OK) {
         CAMLreturn (result_fail(0));
