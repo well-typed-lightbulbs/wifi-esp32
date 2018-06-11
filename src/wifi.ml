@@ -40,6 +40,13 @@ type wifi_error =
     | Nothing_to_read
     | Wifi_not_inited
 
+type wifi_event = 
+    | STA_started
+    | AP_started
+    | STA_connected
+    | STA_frame_received
+    | AP_frame_received
+
 type wifi_sta_description = {
     mac: Bytes.t;
 }
@@ -50,6 +57,12 @@ type wifi_ap_description = {
     auth_mode: wifi_auth_mode;
 }
 
+let id_of_event = function 
+    | STA_started -> 0 
+    | AP_started -> 1 
+    | STA_connected -> 2 
+    | STA_frame_received -> 3 
+    | AP_frame_received -> 4
 
 external get_status : unit -> wifi_status = "ml_wifi_get_status"
 
