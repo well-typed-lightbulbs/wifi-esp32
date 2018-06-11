@@ -81,6 +81,7 @@ wifi_status wifi_get_status() {
 
 esp_err_t wifi_event_handler(void *ctx, system_event_t *event)
 {
+    printf("Wifi event: %d\n", event->event_id);
     switch(event->event_id) {
         /* Station events */
         case SYSTEM_EVENT_STA_START:

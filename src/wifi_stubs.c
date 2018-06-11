@@ -532,10 +532,10 @@ value ml_wifi_get_status(value unit) {
 
     wifi_status st = wifi_get_status();
     v_result = caml_alloc_tuple(4);
-    Store_field(v_result, 0, st.wifi_inited);
-    Store_field(v_result, 1, st.ap_started);
-    Store_field(v_result, 2, st.sta_started);
-    Store_field(v_result, 3, st.sta_connected);
+    Store_field(v_result, 0, Val_bool(st.wifi_inited));
+    Store_field(v_result, 1, Val_bool(st.ap_started));
+    Store_field(v_result, 2, Val_bool(st.sta_started));
+    Store_field(v_result, 3, Val_bool(st.sta_connected));
 
     CAMLreturn (v_result);
 }
