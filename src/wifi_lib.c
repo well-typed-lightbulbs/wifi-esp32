@@ -27,7 +27,12 @@
 EventGroupHandle_t esp_event_group;
 int esp_event_offset;
 
-static wifi_status wifi_current_status;
+static wifi_status wifi_current_status = {
+    .wifi_inited     = 0,
+    .ap_started      = 0,
+    .sta_started     = 0,
+    .sta_connected   = 0
+};
 
 void wifi_set_event_group(EventGroupHandle_t event_group, int offset) {
     esp_event_group = event_group;
