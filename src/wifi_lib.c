@@ -70,6 +70,10 @@ void wifi_wait_for_event(int event_bitset) {
     }
 }
 
+wifi_status wifi_get_status() {
+    return wifi_current_status;
+}
+
 esp_err_t wifi_event_handler(void *ctx, system_event_t *event)
 {
     switch(event->event_id) {
