@@ -112,7 +112,7 @@ esp_err_t wifi_event_handler(void *ctx, system_event_t *event)
         /* AP events */
         case SYSTEM_EVENT_AP_START:
             wifi_current_status.ap_started = true;
-            ESP_ERROR_CHECK(esp_wifi_internal_reg_rxcb(WIFI_IF_STA, ap_packet_handler));
+            ESP_ERROR_CHECK(esp_wifi_internal_reg_rxcb(WIFI_IF_AP, ap_packet_handler));
             if (esp_event_group != NULL) {
                 xEventGroupSetBits(esp_event_group, ESP_AP_STARTED_BIT << esp_event_offset);
             }
@@ -243,7 +243,7 @@ esp_err_t ap_packet_handler(void *buffer, uint16_t len, void *eb) {
 int wifi_read(wifi_interface_t interface, uint8_t* buf, size_t* size) {
     int result;
 
-    frame_list_t* current_frame;
+    frame_list_t** current_frame;
      if (interface == WIFI_IF_AP) {
         current_frame = &ap_frames_start;
     } else if (interface == WIFI_IF_STA) {
@@ -252,24 +252,26 @@ int wifi_read(wifi_interface_t interface, uint8_t* buf, size_t* size) {
         assert (false);
     }
 
-    if (current_frame != NULL) {
+    if (*current_frame != NULL) {
         /* Check if destination buffer can contain the payload. If not, drop the payload. */
-        if (current_frame->length > *size) {
+        if ((*current_frame)->length > *size) {
             result = WIFI_ERR_INVAL;
             *size = 0;
         } else {
             result = WIFI_ERR_OK;
-            *size = current_frame->length;
-            memcpy(buf, current_frame->buffer, current_frame->length);
+            *size = (*current_frame)->length;
+            memcpy(buf, (*current_frame)->buffer, (*current_frame)->length);
         }
 
         if (interface == WIFI_IF_AP) {
+            assert(n_ap_frames > 0);
             free_oldest_frame(&ap_frames_start, &ap_frames_end);
             n_ap_frames--;
             if (n_ap_frames == 0 && esp_event_group != NULL) {
                 xEventGroupClearBits(esp_event_group, ESP_AP_FRAME_RECEIVED_BIT << esp_event_offset);
             }
         } else if (interface == WIFI_IF_STA) {
+            assert(n_sta_frames > 0);
             free_oldest_frame(&sta_frames_start, &sta_frames_end);
             n_sta_frames--;
             if (n_sta_frames == 0 && esp_event_group != NULL) {
