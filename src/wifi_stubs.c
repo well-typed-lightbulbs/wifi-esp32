@@ -160,6 +160,7 @@ value ml_wifi_ap_set_config(value config) {
         CAMLreturn (result_fail(0));
     }
     memcpy(&ap_config.ssid, Bytes_val(Field(config, 0)), len);
+    ap_config.ssid_len = len;
 
     /* copy password */
     len = caml_string_length(Field(config, 1));
@@ -168,7 +169,6 @@ value ml_wifi_ap_set_config(value config) {
     }
     memcpy(&ap_config.password, Bytes_val(Field(config, 1)), len);
 
-    ap_config.ssid_len = len;
 
     int channel = Int_val(Field(config, 2));
     int auth_mode = Int_val(Field(config, 3));
