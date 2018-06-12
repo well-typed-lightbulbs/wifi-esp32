@@ -157,17 +157,19 @@ value ml_wifi_ap_set_config(value config) {
     /* copy ssid */
     int len = caml_string_length(Field(config, 0));
     if (len > 32) {
+        printf("ml_wifi_ap_set_config: SSID too long (%d)\n", len);
         CAMLreturn (result_fail(0));
     }
-    memcpy(&ap_config.ssid, Bytes_val(Field(config, 0)), len);
+    memcpy(&ap_config.ssid, Bytes_val(Field(config, 0)), len+1);
     ap_config.ssid_len = len;
 
     /* copy password */
     len = caml_string_length(Field(config, 1));
     if (len > 64) {
+        printf("ml_wifi_ap_set_config: password too long (%d)\n", len);
         CAMLreturn (result_fail(0));
     }
-    memcpy(&ap_config.password, Bytes_val(Field(config, 1)), len);
+    memcpy(&ap_config.password, Bytes_val(Field(config, 1)), len+1);
 
 
     int channel = Int_val(Field(config, 2));
@@ -177,6 +179,7 @@ value ml_wifi_ap_set_config(value config) {
     int beacon_interval = Int_val(Field(config, 6));
 
     if (channel > 256 || channel < 0) {
+        printf("ml_wifi_ap_set_config: wrong channel (%d)\n", channel);
         CAMLreturn (result_fail(0));
     }
     ap_config.channel = (uint8_t) channel;
@@ -198,6 +201,7 @@ value ml_wifi_ap_set_config(value config) {
             ap_config.authmode = WIFI_AUTH_WPA2_ENTERPRISE;
             break;
         default:
+            printf("ml_wifi_ap_set_config: failed parsing auth_mode (%d)\n", auth_mode);
             CAMLreturn (result_fail(0));
     }
 
@@ -210,6 +214,7 @@ value ml_wifi_ap_set_config(value config) {
     };
 
     if (esp_wifi_set_config(WIFI_IF_AP, &esp_config) != ESP_OK) {
+        printf("ml_wifi_ap_set_config: failed esp_wifi_set_config (%d)\n", esp_wifi_set_config(WIFI_IF_AP, &esp_config));
         CAMLreturn (result_fail(0));
     }
 
