@@ -173,7 +173,7 @@ value ml_wifi_ap_set_config(value config) {
 
 
     int channel = Int_val(Field(config, 2));
-    int auth_mode = Int_val(Field(config, 3));
+    int auth_mode = Field(config, 3);
     int ssid_hidden = Int_val(Field(config, 4));
     int max_connection = Int_val(Field(config, 5));
     int beacon_interval = Int_val(Field(config, 6));
