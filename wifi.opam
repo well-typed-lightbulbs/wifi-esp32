@@ -5,7 +5,6 @@ authors: []
 tags: []
 build: [ "jbuilder" "build" "-x" "esp32" "-p" "wifi"]
 depends: [
-  "ocamlfind" {build}
   "jbuilder" {build}
   "cstruct-esp32"
   "ocaml-esp32"
