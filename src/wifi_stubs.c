@@ -283,14 +283,14 @@ value ml_wifi_sta_set_config(value config) {
     if (len > 32) {
         CAMLreturn (result_fail(0));
     }
-    memcpy(&sta_config.ssid, Bytes_val(Field(config, 0)), len);
+    memcpy(&sta_config.ssid, Bytes_val(Field(config, 0)), len+1);
 
     /* copy password */
     len = caml_string_length(Field(config, 1));
     if (len > 64) {
         CAMLreturn (result_fail(0));
     }
-    memcpy(&sta_config.password, Bytes_val(Field(config, 1)), len);
+    memcpy(&sta_config.password, Bytes_val(Field(config, 1)), len+1);
 
     sta_config.bssid_set = false;
 
