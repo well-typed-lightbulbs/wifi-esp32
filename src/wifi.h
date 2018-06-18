@@ -11,10 +11,13 @@
 
 
 #define ESP_STA_STARTED_BIT         BIT0
-#define ESP_AP_STARTED_BIT          BIT1
-#define ESP_STA_CONNECTED_BIT       BIT2
-#define ESP_STA_FRAME_RECEIVED_BIT  BIT3
-#define ESP_AP_FRAME_RECEIVED_BIT   BIT4
+#define ESP_STA_STOPPED_BIT         BIT1
+#define ESP_AP_STARTED_BIT          BIT2
+#define ESP_AP_STOPPED_BIT          BIT3
+#define ESP_STA_CONNECTED_BIT       BIT4
+#define ESP_STA_DISCONNECTED_BIT    BIT5
+#define ESP_STA_FRAME_RECEIVED_BIT  BIT6
+#define ESP_AP_FRAME_RECEIVED_BIT   BIT7
 
 typedef struct wifi_status {
     unsigned int wifi_inited    : 1;

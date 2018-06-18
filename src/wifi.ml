@@ -42,8 +42,11 @@ type wifi_error =
 
 type wifi_event = 
     | STA_started
+    | STA_stopped
     | AP_started
+    | AP_stopped
     | STA_connected
+    | STA_disconnected
     | STA_frame_received
     | AP_frame_received
 
@@ -59,10 +62,13 @@ type wifi_ap_description = {
 
 let id_of_event = function 
     | STA_started -> 0 
-    | AP_started -> 1 
-    | STA_connected -> 2 
-    | STA_frame_received -> 3 
-    | AP_frame_received -> 4
+    | STA_stopped -> 1 
+    | AP_started -> 2 
+    | AP_stopped -> 3 
+    | STA_connected -> 4
+    | STA_disconnected -> 5 
+    | STA_frame_received -> 6 
+    | AP_frame_received -> 7
 
 external get_status : unit -> wifi_status = "ml_wifi_get_status"
 

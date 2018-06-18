@@ -37,6 +37,10 @@ static wifi_status wifi_current_status = {
 void wifi_set_event_group(EventGroupHandle_t event_group, int offset) {
     esp_event_group = event_group;
     esp_event_offset = offset;
+
+    xEventGroupSetBits(esp_event_group, ESP_STA_STOPPED_BIT << esp_event_offset);
+    xEventGroupSetBits(esp_event_group, ESP_STA_DISCONNECTED_BIT << esp_event_offset);
+    xEventGroupSetBits(esp_event_group, ESP_AP_STOPPED_BIT << esp_event_offset);
 }
 
 static uint32_t n_sta_frames = 0;
@@ -89,24 +93,28 @@ esp_err_t wifi_event_handler(void *ctx, system_event_t *event)
             wifi_current_status.sta_started = true;
             if (esp_event_group != NULL) {
                 xEventGroupSetBits(esp_event_group, ESP_STA_STARTED_BIT << esp_event_offset);
+                xEventGroupClearBits(esp_event_group, ESP_STA_STOPPED_BIT << esp_event_offset);
             }
             break;
         case SYSTEM_EVENT_STA_STOP:
             wifi_current_status.sta_started = false;
             if (esp_event_group != NULL) {
                 xEventGroupClearBits(esp_event_group, ESP_STA_STARTED_BIT << esp_event_offset);
+                xEventGroupSetBits(esp_event_group, ESP_STA_STOPPED_BIT << esp_event_offset);
             }
             break;
         case SYSTEM_EVENT_STA_CONNECTED:
             wifi_current_status.sta_connected = true;
             if (esp_event_group != NULL) {
                 xEventGroupSetBits(esp_event_group, ESP_STA_CONNECTED_BIT << esp_event_offset);
+                xEventGroupClearBits(esp_event_group, ESP_STA_DISCONNECTED_BIT << esp_event_offset);
             }
             break;
         case SYSTEM_EVENT_STA_DISCONNECTED:
             wifi_current_status.sta_connected = false;
             if (esp_event_group != NULL) {
                 xEventGroupClearBits(esp_event_group, ESP_STA_CONNECTED_BIT << esp_event_offset);
+                xEventGroupSetBits(esp_event_group, ESP_STA_DISCONNECTED_BIT << esp_event_offset);
             }
             break;
         /* AP events */
@@ -115,12 +123,14 @@ esp_err_t wifi_event_handler(void *ctx, system_event_t *event)
             ESP_ERROR_CHECK(esp_wifi_internal_reg_rxcb(WIFI_IF_AP, ap_packet_handler));
             if (esp_event_group != NULL) {
                 xEventGroupSetBits(esp_event_group, ESP_AP_STARTED_BIT << esp_event_offset);
+                xEventGroupClearBits(esp_event_group, ESP_AP_STOPPED_BIT << esp_event_offset);
             }
             break;
         case SYSTEM_EVENT_AP_STOP:
             wifi_current_status.ap_started = false;
             if (esp_event_group != NULL) {
                 xEventGroupClearBits(esp_event_group, ESP_AP_STARTED_BIT << esp_event_offset);
+                xEventGroupSetBits(esp_event_group, ESP_AP_STOPPED_BIT << esp_event_offset);
             }
             break;
         case SYSTEM_EVENT_AP_STACONNECTED:
