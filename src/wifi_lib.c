@@ -304,7 +304,7 @@ int wifi_read(wifi_interface_t interface, uint8_t* buf, size_t* size) {
 
 int wifi_write(wifi_interface_t interface, uint8_t* buf, size_t* size) {
     int result;
-    switch(esp_wifi_internal_tx(WIFI_IF_STA, buf, size)){
+    switch(esp_wifi_internal_tx(interface, buf, *size)){
         case ERR_OK:
             result = WIFI_ERR_OK;
             break;
@@ -315,4 +315,5 @@ int wifi_write(wifi_interface_t interface, uint8_t* buf, size_t* size) {
             result = WIFI_ERR_UNSPEC;
             break;
     }
+    return result;
 }
