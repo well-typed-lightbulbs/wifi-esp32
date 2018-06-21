@@ -250,7 +250,7 @@ int wifi_read(wifi_interface_t interface, uint8_t* buf, size_t* size) {
         assert(false);
     }
 
-    if(xQueueReceive(frames, &tmp_buffer, 10*configTICK_RATE_HZ)) {
+    if(xQueueReceive(frames, &tmp_buffer, 0)) {
         if (tmp_buffer.length > *size) {
             result = WIFI_ERR_INVAL;
             *size = 0;
