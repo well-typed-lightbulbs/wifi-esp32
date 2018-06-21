@@ -24,8 +24,8 @@
 
 
 /* Event group to notify Mirage task when data is received*/
-EventGroupHandle_t esp_event_group;
-int esp_event_offset;
+EventGroupHandle_t  esp_event_group;
+int                 esp_event_offset;
 
 static wifi_status wifi_current_status = {
     .wifi_inited     = 0,
@@ -141,8 +141,25 @@ esp_err_t wifi_event_handler(void *ctx, system_event_t *event)
     return ESP_OK;
 }
 
+/*
+ Wifi frame descriptors storage. 
+ */
+typedef struct frame_list {
+    uint16_t length;
+    void* buffer;
+    void* l2_frame; /* the whole frame, to free with `esp_wifi_internal_free_rx_buffer` after transmmission to the stack. */
+} wifi_frame_t;
+
+static QueueHandle_t ap_frames;
+static QueueHandle_t sta_frames;
+
+static const MAX_NUMBER_OF_FRAMES = 20;
+
 esp_err_t wifi_initialize() {
     esp_err_t res;
+
+    ap_frames = xQueueCreate(MAX_NUMBER_OF_FRAMES, sizeof(wifi_frame_t));
+    sta_frames = xQueueCreate(MAX_NUMBER_OF_FRAMES, sizeof(wifi_frame_t));
 
     ESP_ERROR_CHECK(nvs_flash_init());
 
@@ -176,118 +193,82 @@ esp_err_t wifi_deinitialize() {
     return ESP_OK;
 }
 
-/*
- Wifi frame descriptors storage. 
- */
-typedef struct frame_list {
-    struct frame_list* next;
-    uint16_t length;
-    void* buffer;
-    void* l2_frame; /* the whole frame, to free with `esp_wifi_internal_free_rx_buffer` after transmmission to the stack. */
-} frame_list_t;
 
-static frame_list_t* ap_frames_start = NULL;
-static frame_list_t* ap_frames_end = NULL;
-
-static frame_list_t* sta_frames_start = NULL;
-static frame_list_t* sta_frames_end = NULL;
-
-
-void free_oldest_frame(frame_list_t** frames_start, frame_list_t** frames_end) 
-{
-    frame_list_t* oldest_frame = *frames_start;
-
-    /* Last frame in the list */
-    if (*frames_start == *frames_end) {
-        *frames_start = NULL;
-        *frames_end = NULL;
-    } else {
-        *frames_start = oldest_frame->next;
-    }
-    esp_wifi_internal_free_rx_buffer(oldest_frame->l2_frame);
-    free(oldest_frame);
-}
-
-void packet_handler(void *buffer, uint16_t len, void *eb, frame_list_t** frames_start, frame_list_t** frames_end) {
-    frame_list_t* entry = malloc(sizeof(frame_list_t));
-    entry->next = NULL;
-    entry->length = len,
-    entry->buffer = buffer;
-    entry->l2_frame = eb;
-    if (*frames_end != NULL) {
-        (*frames_end)->next = entry;
-    } else {
-        *frames_start = entry;
-    }
-    *frames_end = entry;
-}
 
 esp_err_t sta_packet_handler(void *buffer, uint16_t len, void *eb) {
-    packet_handler(buffer, len, eb, &sta_frames_start, &sta_frames_start);
-    n_sta_frames++;
-    if (n_sta_frames > 30) {
-        printf("[wifi] Too many STA frames pending, dropping the oldest one.\n");
-        free_oldest_frame(&sta_frames_start, &sta_frames_end);
-        n_sta_frames--;
+    wifi_frame_t tmp_buffer;
+
+    /* drop one frame */
+    if (uxQueueMessagesWaitingFromISR(ap_frames) == MAX_NUMBER_OF_FRAMES) {
+        printf("[wifi] Too many STA frames pending, dropping the oldest one.\r");
+        xQueueReceiveFromISR(sta_frames, &tmp_buffer, NULL);
+        esp_wifi_internal_free_rx_buffer(tmp_buffer.l2_frame);
     }
-    if (esp_event_group != NULL) {
-        xEventGroupSetBits(esp_event_group, ESP_STA_FRAME_RECEIVED_BIT << esp_event_offset);
-    }
+
+    tmp_buffer.buffer = buffer;
+    tmp_buffer.length = len;
+    tmp_buffer.l2_frame = eb;
+    xQueueSendFromISR(sta_frames, &tmp_buffer, NULL);
+    xEventGroupSetBits(esp_event_group, ESP_STA_FRAME_RECEIVED_BIT << esp_event_offset);
     return ESP_OK;
 }
 
+
 esp_err_t ap_packet_handler(void *buffer, uint16_t len, void *eb) {
-    packet_handler(buffer, len, eb, &ap_frames_start, &ap_frames_start);
-    n_ap_frames++;
-    if (n_ap_frames > 30) {
-        printf("[wifi] Too many AP frames pending, dropping the oldest one.\n");
-        free_oldest_frame(&ap_frames_start, &ap_frames_end);
-        n_ap_frames--;
+    wifi_frame_t tmp_buffer;
+
+    /* drop one frame */
+    if (uxQueueMessagesWaitingFromISR(ap_frames) == MAX_NUMBER_OF_FRAMES) {
+        printf("[wifi] Too many AP frames pending, dropping the oldest one.\r");
+        xQueueReceiveFromISR(ap_frames, &tmp_buffer, NULL);
+        esp_wifi_internal_free_rx_buffer(tmp_buffer.l2_frame);
     }
-    if (esp_event_group != NULL) {
-        xEventGroupSetBits(esp_event_group, ESP_AP_FRAME_RECEIVED_BIT << esp_event_offset);
-    }
+
+    tmp_buffer.buffer = buffer;
+    tmp_buffer.length = len;
+    tmp_buffer.l2_frame = eb;
+    xQueueSendFromISR(ap_frames, &tmp_buffer, NULL);
+    xEventGroupSetBits(esp_event_group, ESP_AP_FRAME_RECEIVED_BIT << esp_event_offset);
     return ESP_OK;
 }
 
 int wifi_read(wifi_interface_t interface, uint8_t* buf, size_t* size) {
     int result;
+    wifi_frame_t tmp_buffer;
 
-    frame_list_t** current_frame;
-     if (interface == WIFI_IF_AP) {
-        current_frame = &ap_frames_start;
+    QueueHandle_t frames;
+
+    int bit_to_set;
+
+    if (interface == WIFI_IF_AP) {
+        frames = ap_frames;
+        bit_to_set = ESP_AP_FRAME_RECEIVED_BIT << esp_event_offset;
     } else if (interface == WIFI_IF_STA) {
-        current_frame = &sta_frames_start;
+        frames = sta_frames;
+        bit_to_set = ESP_STA_FRAME_RECEIVED_BIT << esp_event_offset;
     } else {
-        assert (false);
+        assert(false);
     }
 
-    if (*current_frame != NULL) {
-        /* Check if destination buffer can contain the payload. If not, drop the payload. */
-        if ((*current_frame)->length > *size) {
+    if(xQueueReceive(frames, &tmp_buffer, 10*configTICK_RATE_HZ)) {
+        if (tmp_buffer.length > *size) {
             result = WIFI_ERR_INVAL;
             *size = 0;
         } else {
             result = WIFI_ERR_OK;
-            *size = (*current_frame)->length;
-            memcpy(buf, (*current_frame)->buffer, (*current_frame)->length);
+            *size = tmp_buffer.length;
+            memcpy(buf, tmp_buffer.buffer, tmp_buffer.length);
         }
+        esp_wifi_internal_free_rx_buffer(tmp_buffer.l2_frame);
 
-        if (interface == WIFI_IF_AP) {
-            assert(n_ap_frames > 0);
-            free_oldest_frame(&ap_frames_start, &ap_frames_end);
-            n_ap_frames--;
-            if (n_ap_frames == 0 && esp_event_group != NULL) {
-                xEventGroupClearBits(esp_event_group, ESP_AP_FRAME_RECEIVED_BIT << esp_event_offset);
+        /* Update event group status. */
+        if (uxQueueMessagesWaiting(frames) == 0 && esp_event_group != NULL) {
+            /* Between those two lines an ISR can happen. So after that we'll make sure that if a frame has been received the event has been registered.*/
+            xEventGroupClearBits(esp_event_group, bit_to_set);
+            if (uxQueueMessagesWaiting(frames) >= 1) {
+                xEventGroupSetBits(esp_event_group, bit_to_set);
             }
-        } else if (interface == WIFI_IF_STA) {
-            assert(n_sta_frames > 0);
-            free_oldest_frame(&sta_frames_start, &sta_frames_end);
-            n_sta_frames--;
-            if (n_sta_frames == 0 && esp_event_group != NULL) {
-                xEventGroupClearBits(esp_event_group, ESP_STA_FRAME_RECEIVED_BIT << esp_event_offset);
-            }
-        } 
+        }
     } else {
         result = WIFI_ERR_AGAIN;
         *size = 0;
