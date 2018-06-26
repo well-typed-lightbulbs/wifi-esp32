@@ -492,7 +492,6 @@ value ml_wifi_write(value v_interface, value v_buffer, value v_buffer_size) {
     size_t size     = Long_val(v_buffer_size);
 
     int error_code = wifi_write(interface, buf, &size);
-
     
     if (error_code != WIFI_ERR_OK) {
         switch (error_code) {

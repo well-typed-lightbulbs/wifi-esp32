@@ -112,6 +112,7 @@ esp_err_t wifi_event_handler(void *ctx, system_event_t *event)
             break;
         case SYSTEM_EVENT_STA_DISCONNECTED:
             wifi_current_status.sta_connected = false;
+            esp_wifi_connect();
             if (esp_event_group != NULL) {
                 xEventGroupClearBits(esp_event_group, ESP_STA_CONNECTED_BIT << esp_event_offset);
                 xEventGroupSetBits(esp_event_group, ESP_STA_DISCONNECTED_BIT << esp_event_offset);
@@ -170,6 +171,10 @@ esp_err_t wifi_initialize() {
     
     /* Allocate buffers for wifi */
     wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
+    cfg.static_rx_buf_num = 10;
+    cfg.dynamic_rx_buf_num = MAX_NUMBER_OF_FRAMES;
+    cfg.static_tx_buf_num = 6;
+    cfg.nvs_enable = false;
     if (res = esp_wifi_init_internal(&cfg) != ESP_OK) {
         return res;
     }
@@ -284,15 +289,20 @@ int wifi_read(wifi_interface_t interface, uint8_t* buf, size_t* size) {
 #define ERR_ARG -16
 
 int wifi_write(wifi_interface_t interface, uint8_t* buf, size_t* size) {
-    int result;
-    switch(esp_wifi_internal_tx(interface, buf, *size)){
+    int result = -1;
+
+    result = esp_wifi_internal_tx(interface, buf, *size);
+
+    switch(result){
         case ERR_OK:
             result = WIFI_ERR_OK;
             break;
         case ERR_ARG:
+            printf("WIFI WRITE ERROR: %d -> %d\n", *size, result);
             result = WIFI_ERR_INVAL;
             break;
         default:
+            printf("WIFI WRITE ERROR: %d -> %d\n", *size, result);
             result = WIFI_ERR_UNSPEC;
             break;
     }
