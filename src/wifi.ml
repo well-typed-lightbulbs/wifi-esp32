@@ -95,7 +95,7 @@ external disconnect : unit -> (unit, wifi_error) result = "ml_wifi_disconnect"
 external scan_start : unit -> (unit, wifi_error) result = "ml_wifi_scan_start"
 external scan_stop : unit -> (unit, wifi_error) result = "ml_wifi_scan_stop"
 external scan_count : unit -> (int, wifi_error) result = "ml_wifi_scan_count"
-external scan_get_list : int -> (wifi_ap_description list, wifi_error) result = "ml_wifi_scan_get_list"
+external scan_get_array : int -> (wifi_ap_description array, wifi_error) result = "ml_wifi_scan_get_array"
 
 (* Network interface functions *)
 
